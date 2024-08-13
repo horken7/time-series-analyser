@@ -23,13 +23,6 @@ def detect_anomalies_isolation_forest(series, contamination='auto'):
     return pd.Series(series.flatten(), index=original_index)[preds == -1]
 
 
-# Function to downsample the data if it's too large
-def downsample_data(df, max_points=10000):
-    if len(df) > max_points:
-        return df.iloc[::len(df) // max_points]
-    return df
-
-
 # Streamlit app title
 st.title('Time Series Analyzer')
 
@@ -83,8 +76,8 @@ if uploaded_file is not None:
         if selected_machine_id is not None and machine_id_col:
             df = df[df[machine_id_col] == selected_machine_id]
 
-        # Downsample the data if it's too large
-        df = downsample_data(df)
+        # Sort the DataFrame by the timestamp column
+        df = df.sort_values(by=timestamp_col)
 
         # Convert to more memory-efficient types (optional)
         df = df.astype({col: 'float32' for col in df.columns if df[col].dtype == 'float64'})
