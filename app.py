@@ -34,7 +34,7 @@ st.write("""
     representing the timestamp, choose a feature to analyze, and apply anomaly detection methods 
     like Moving Average or Isolation Forest. The results will be visualized for easy interpretation.
 
-    Please start by uploading your CSV file from the sidebar. An example dataset can be found [here](https://www.kaggle.com/datasets/arnabbiswas1/microsoft-azure-predictive-maintenance?select=PdM_maint.csv).
+    Please start by uploading your CSV file from the sidebar. An example dataset can be found [here](https://www.kaggle.com/datasets/arnabbiswas1/microsoft-azure-predictive-maintenance?select=PdM_telemetry.csv).
 """)
 
 # File upload section
