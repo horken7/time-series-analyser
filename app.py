@@ -63,7 +63,7 @@ if uploaded_file is not None:
     # Prepare options for specific machine ID selection
     if machine_id_col:
         machine_ids = df[machine_id_col].unique()
-        machine_id_options = [None] + list(machine_ids)  # Add "None" at the beginning
+        machine_id_options = list(machine_ids) + [None]  # Add "None" at the end
     else:
         machine_id_options = [None]  # Only "None" if no machine ID column is selected
 
