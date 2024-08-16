@@ -4,8 +4,15 @@ import plotly.express as px
 from sklearn.ensemble import IsolationForest
 
 
-# Function to detect anomalies using moving average and standard deviation
-def detect_anomalies_moving_avg(df, timestamp_col, feature_col, window_size=5, sigma=2):
+# Caching the file upload and reading process
+@st.cache_data
+def load_data(uploaded_file):
+    return pd.read_csv(uploaded_file)
+
+
+# Caching the anomaly detection functions
+@st.cache_data
+def detect_anomalies_moving_avg(df, timestamp_col, feature_col, window_size=5, sigma=1.75):
     rolling_mean = df[feature_col].rolling(window=window_size).mean()
     rolling_std = df[feature_col].rolling(window=window_size).std()
     anomalies = (df[feature_col] - rolling_mean).abs() > sigma * rolling_std
@@ -13,7 +20,7 @@ def detect_anomalies_moving_avg(df, timestamp_col, feature_col, window_size=5, s
     return df
 
 
-# Function to detect anomalies using IsolationForest
+@st.cache_data
 def detect_anomalies_isolation_forest(df, timestamp_col, feature_col, contamination='auto'):
     series = df[feature_col].values.reshape(-1, 1)
     model = IsolationForest(contamination=contamination, random_state=42)
@@ -34,7 +41,7 @@ st.write("""
     representing the timestamp, choose a feature to analyze, and apply anomaly detection methods 
     like Moving Average or Isolation Forest. The results will be visualized for easy interpretation.
 
-    Please start by uploading your CSV file from the sidebar. An example dataset can be found [here](https://www.kaggle.com/datasets/arnabbiswas1/microsoft-azure-predictive-maintenance?select=PdM_telemetry.csv).
+    Please start by uploading your CSV file from the sidebar. An example dataset can be found [here](https://www.kaggle.com/datasets/arnabbiswas1/microsoft-azure-predictive-maintenance?select=PdM_maint.csv).
 """)
 
 # File upload section
@@ -42,8 +49,8 @@ st.sidebar.header('Upload your CSV file')
 uploaded_file = st.sidebar.file_uploader("Upload a CSV file", type=["csv"])
 
 if uploaded_file is not None:
-    # Read CSV file
-    df = pd.read_csv(uploaded_file)
+    # Load data with caching
+    df = load_data(uploaded_file)
 
     # List of columns
     columns = df.columns.tolist()
@@ -63,7 +70,7 @@ if uploaded_file is not None:
     # Prepare options for specific machine ID selection
     if machine_id_col:
         machine_ids = df[machine_id_col].unique()
-        machine_id_options = list(machine_ids) + [None]  # Add "None" at the end
+        machine_id_options = [None] + list(machine_ids)  # Add "None" at the beginning
     else:
         machine_id_options = [None]  # Only "None" if no machine ID column is selected
 
@@ -88,14 +95,14 @@ if uploaded_file is not None:
         # Sidebar options to select feature and method, and input for anomaly detection parameters
         st.sidebar.subheader('Anomaly Detection Parameters')
         selected_feature = st.sidebar.selectbox('Select Feature', feature_options)
-        detection_method = st.sidebar.selectbox('Select Detection Method', ['Moving Average', 'Isolation Forest'])
+        detection_method = st.sidebar.selectbox('Select Detection Method', ['Isolation Forest', 'Moving Average'])
 
         if detection_method == 'Moving Average':
             window_size = st.sidebar.number_input('Window Size', min_value=1, value=5)
             sigma = st.sidebar.number_input('Sigma Threshold', min_value=0.1, value=1.75, step=0.1)
         elif detection_method == 'Isolation Forest':
             contamination = st.sidebar.text_input(
-                'Contamination (auto for automatic, or a float between 0.01 and 0.5)', 0.02)
+                'Contamination (auto for automatic, or a float between 0.01 and 0.5)', 'auto')
             # Validate and convert contamination input
             try:
                 contamination_value = float(contamination) if contamination.lower() != 'auto' else 'auto'
