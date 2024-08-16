@@ -1,7 +1,9 @@
 Time Series Analyzer
 ====================
 
-This Streamlit app visualizes time series data and detects anomalies using two methods: Moving Average and Isolation Forest. 
+This Streamlit app visualizes time series data and detects anomalies using two methods: Moving Average and Isolation Forest.
+
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://time-series-analyser.streamlit.app/)
 
 # Features
 
