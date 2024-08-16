@@ -88,7 +88,7 @@ if uploaded_file is not None:
         # Sidebar options to select feature and method, and input for anomaly detection parameters
         st.sidebar.subheader('Anomaly Detection Parameters')
         selected_feature = st.sidebar.selectbox('Select Feature', feature_options)
-        detection_method = st.sidebar.selectbox('Select Detection Method', ['Isolation Forest', 'Moving Average'])
+        detection_method = st.sidebar.selectbox('Select Detection Method', ['Moving Average', 'Isolation Forest'])
 
         if detection_method == 'Moving Average':
             window_size = st.sidebar.number_input('Window Size', min_value=1, value=5)
