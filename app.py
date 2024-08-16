@@ -95,7 +95,7 @@ if uploaded_file is not None:
             sigma = st.sidebar.number_input('Sigma Threshold', min_value=0.1, value=1.75, step=0.1)
         elif detection_method == 'Isolation Forest':
             contamination = st.sidebar.text_input(
-                'Contamination (auto for automatic, or a float between 0.01 and 0.5)', 'auto')
+                'Contamination (auto for automatic, or a float between 0.01 and 0.5)', 0.02)
             # Validate and convert contamination input
             try:
                 contamination_value = float(contamination) if contamination.lower() != 'auto' else 'auto'
