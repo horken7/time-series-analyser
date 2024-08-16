@@ -5,22 +5,22 @@ from sklearn.ensemble import IsolationForest
 
 
 # Function to detect anomalies using moving average and standard deviation
-def detect_anomalies_moving_avg(series, window_size=5, sigma=2):
-    rolling_mean = series.rolling(window=window_size).mean()
-    rolling_std = series.rolling(window=window_size).std()
-    anomalies = series[(series - rolling_mean).abs() > sigma * rolling_std]
-    return anomalies.dropna()
+def detect_anomalies_moving_avg(df, timestamp_col, feature_col, window_size=5, sigma=2):
+    rolling_mean = df[feature_col].rolling(window=window_size).mean()
+    rolling_std = df[feature_col].rolling(window=window_size).std()
+    anomalies = (df[feature_col] - rolling_mean).abs() > sigma * rolling_std
+    df['Anomaly'] = anomalies
+    return df
 
 
 # Function to detect anomalies using IsolationForest
-def detect_anomalies_isolation_forest(series, contamination='auto'):
-    original_index = series.index  # Store the original index
-    series = series.values.reshape(-1, 1)
+def detect_anomalies_isolation_forest(df, timestamp_col, feature_col, contamination='auto'):
+    series = df[feature_col].values.reshape(-1, 1)
     model = IsolationForest(contamination=contamination, random_state=42)
     model.fit(series)
     preds = model.predict(series)
-    # Re-create the Series with the original index
-    return pd.Series(series.flatten(), index=original_index)[preds == -1]
+    df['Anomaly'] = preds == -1
+    return df
 
 
 # Streamlit app title
@@ -106,29 +106,31 @@ if uploaded_file is not None:
                 st.error('Invalid input for contamination. Please enter a float or "auto".')
                 contamination_value = 'auto'
 
-        # Plot the time series data and anomalies for the selected feature
-        st.subheader(f'Time Series & Anomaly Detection for {selected_feature} using {detection_method}:')
-
         # Detect anomalies based on selected method
         if detection_method == 'Moving Average':
-            anomalies = detect_anomalies_moving_avg(df[selected_feature], window_size=window_size, sigma=sigma)
+            df_anomalies = detect_anomalies_moving_avg(df, timestamp_col, selected_feature, window_size=window_size,
+                                                       sigma=sigma)
         elif detection_method == 'Isolation Forest':
-            anomalies = detect_anomalies_isolation_forest(df[selected_feature], contamination=contamination_value)
+            df_anomalies = detect_anomalies_isolation_forest(df, timestamp_col, selected_feature,
+                                                             contamination=contamination_value)
 
         # Plot data with anomalies
-        fig = px.line(df, x=timestamp_col, y=selected_feature,
+        st.subheader(f'Time Series & Anomaly Detection for {selected_feature} using {detection_method}:')
+        fig = px.line(df_anomalies, x=timestamp_col, y=selected_feature,
                       title=f'Time Series Data with Anomalies in {selected_feature}')
 
         # Add anomalies as red dots on the same figure
-        if not anomalies.empty:
-            fig.add_scatter(x=df[timestamp_col], y=anomalies, mode='markers', name='Anomalies',
+        anomaly_points = df_anomalies[df_anomalies['Anomaly']]
+        if not anomaly_points.empty:
+            fig.add_scatter(x=anomaly_points[timestamp_col], y=anomaly_points[selected_feature],
+                            mode='markers', name='Anomalies',
                             marker=dict(color='red', size=8, line=dict(color='red', width=2)))
 
         st.plotly_chart(fig)
 
         # Display the detected anomalies data
-        if not anomalies.empty:
+        if not anomaly_points.empty:
             st.subheader('Detected Anomalies:')
-            st.write(anomalies)
+            st.write(anomaly_points)
         else:
             st.write('No anomalies detected.')
