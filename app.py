@@ -95,14 +95,14 @@ if uploaded_file is not None:
         # Sidebar options to select feature and method, and input for anomaly detection parameters
         st.sidebar.subheader('Anomaly Detection Parameters')
         selected_feature = st.sidebar.selectbox('Select Feature', feature_options)
-        detection_method = st.sidebar.selectbox('Select Detection Method', ['Isolation Forest', 'Moving Average'])
+        detection_method = st.sidebar.selectbox('Select Detection Method', ['Moving Average', 'Isolation Forest'])
 
         if detection_method == 'Moving Average':
             window_size = st.sidebar.number_input('Window Size', min_value=1, value=5)
             sigma = st.sidebar.number_input('Sigma Threshold', min_value=0.1, value=1.75, step=0.1)
         elif detection_method == 'Isolation Forest':
             contamination = st.sidebar.text_input(
-                'Contamination (auto for automatic, or a float between 0.01 and 0.5)', 'auto')
+                'Contamination (auto for automatic, or a float between 0.01 and 0.5)', 0.02)
             # Validate and convert contamination input
             try:
                 contamination_value = float(contamination) if contamination.lower() != 'auto' else 'auto'
