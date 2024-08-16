@@ -92,7 +92,7 @@ if uploaded_file is not None:
 
         if detection_method == 'Moving Average':
             window_size = st.sidebar.number_input('Window Size', min_value=1, value=5)
-            sigma = st.sidebar.number_input('Sigma Threshold', min_value=0.1, value=2.0, step=0.1)
+            sigma = st.sidebar.number_input('Sigma Threshold', min_value=0.1, value=1.75, step=0.1)
         elif detection_method == 'Isolation Forest':
             contamination = st.sidebar.text_input(
                 'Contamination (auto for automatic, or a float between 0.01 and 0.5)', 'auto')
