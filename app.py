@@ -12,7 +12,7 @@ def load_data(uploaded_file):
 
 # Caching the anomaly detection functions
 @st.cache_data
-def detect_anomalies_moving_avg(df, timestamp_col, feature_col, window_size=5, sigma=1.75):
+def detect_anomalies_moving_avg(df, feature_col, window_size=5, sigma=1.75):
     rolling_mean = df[feature_col].rolling(window=window_size).mean()
     rolling_std = df[feature_col].rolling(window=window_size).std()
     anomalies = (df[feature_col] - rolling_mean).abs() > sigma * rolling_std
@@ -21,7 +21,7 @@ def detect_anomalies_moving_avg(df, timestamp_col, feature_col, window_size=5, s
 
 
 @st.cache_data
-def detect_anomalies_isolation_forest(df, timestamp_col, feature_col, contamination='auto'):
+def detect_anomalies_isolation_forest(df, feature_col, contamination='auto'):
     series = df[feature_col].values.reshape(-1, 1)
     model = IsolationForest(contamination=contamination, random_state=42)
     model.fit(series)
@@ -115,10 +115,10 @@ if uploaded_file is not None:
 
         # Detect anomalies based on selected method
         if detection_method == 'Moving Average':
-            df_anomalies = detect_anomalies_moving_avg(df, timestamp_col, selected_feature, window_size=window_size,
+            df_anomalies = detect_anomalies_moving_avg(df, selected_feature, window_size=window_size,
                                                        sigma=sigma)
         elif detection_method == 'Isolation Forest':
-            df_anomalies = detect_anomalies_isolation_forest(df, timestamp_col, selected_feature,
+            df_anomalies = detect_anomalies_isolation_forest(df, selected_feature,
                                                              contamination=contamination_value)
 
         # Plot data with anomalies
