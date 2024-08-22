@@ -1,3 +1,4 @@
+darts==0.30.0
 pandas==2.2.2
 plotly==5.23.0
 scikit-learn==1.5.1

@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-
+from darts import TimeSeries
 
 @st.cache_data
 def load_data(uploaded_file):
@@ -41,7 +41,6 @@ def select_machine_id(df, machine_id_col):
         return selected_machine_id
     return None
 
-
 def filter_and_sort_data(df, timestamp_col, machine_id_col, selected_machine_id):
     """Filter the DataFrame by selected machine ID and sort by timestamp."""
     if selected_machine_id is not None and machine_id_col:
@@ -56,6 +55,12 @@ def select_feature(df, timestamp_col, machine_id_col):
     selected_feature = st.selectbox(
         'Select Feature',
         feature_options,
-        help="This is the column you want to analyze for anomalies."
+        help="This is the column you want to analyze."
     )
     return selected_feature
+
+def create_timeseries(df, timestamp_col, feature_col):
+    """Create a TimeSeries object from the DataFrame."""
+    df[timestamp_col] = pd.to_datetime(df[timestamp_col])
+    ts = TimeSeries.from_dataframe(df, time_col=timestamp_col, value_cols=feature_col)
+    return ts
