@@ -1,4 +1,7 @@
+import io
+
 import pandas as pd
+import requests
 import streamlit as st
 from darts import TimeSeries
 
@@ -64,3 +67,10 @@ def create_timeseries(df, timestamp_col, feature_col):
     df[timestamp_col] = pd.to_datetime(df[timestamp_col])
     ts = TimeSeries.from_dataframe(df, time_col=timestamp_col, value_cols=feature_col)
     return ts
+
+@st.cache_data
+def load_pdmt_telemetry():
+    url = "https://raw.githubusercontent.com/microsoft/sqlworkshops/master/SQLServerAndAzureMachineLearning/ML%20Services%20for%20SQL%20Server/data/PdM_telemetry.csv"
+    response = requests.get(url)
+    df = pd.read_csv(io.StringIO(response.text))
+    return df

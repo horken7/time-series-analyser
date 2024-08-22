@@ -5,7 +5,8 @@ from darts.models import ARIMA, Prophet, AutoARIMA
 from darts import TimeSeries
 from darts.metrics import mape, rmse
 from darts.datasets import AirPassengersDataset, AusBeerDataset
-from utils import load_data, select_columns, select_machine_id, filter_and_sort_data, select_feature, create_timeseries
+from utils import load_data, select_columns, select_machine_id, filter_and_sort_data, select_feature, create_timeseries, \
+    load_pdmt_telemetry
 
 
 def configure_dataframe(df):
@@ -29,7 +30,8 @@ if use_example_data:
         "Select Example Dataset",
         [
             "AirPassengers",
-            "AusBeer"
+            "AusBeer",
+            "PdMTelemetry"
         ]
     )
 
@@ -38,6 +40,8 @@ if use_example_data:
         ts = AirPassengersDataset().load()
     elif dataset_name == "AusBeer":
         ts = AusBeerDataset().load()
+    elif dataset_name == "PdMTelemetry":
+        df = load_pdmt_telemetry()
 
 else:
     uploaded_file = st.sidebar.file_uploader("Upload a CSV file", type=["csv"])
