@@ -1,12 +1,11 @@
 import streamlit as st
 import plotly.express as px
 import pandas as pd
-from darts.models import ARIMA, Prophet, AutoARIMA
+from darts.models import ARIMA, AutoARIMA, NaiveDrift
 from darts import TimeSeries
 from darts.metrics import mape, rmse
 from darts.datasets import AirPassengersDataset, AusBeerDataset
-from utils import load_data, select_columns, select_machine_id, filter_and_sort_data, select_feature, create_timeseries, \
-    load_pdmt_telemetry
+from utils import load_data, select_columns, select_machine_id, filter_and_sort_data, select_feature, create_timeseries, load_pdmt_telemetry
 
 
 def configure_dataframe(df):
@@ -68,8 +67,8 @@ if ts is not None:
     with st.sidebar.expander("Forecasting Parameters", expanded=True):
         model_type = st.selectbox(
             'Select Forecasting Model',
-            ['Prophet', 'ARIMA', 'AutoARIMA'],
-            index=0,  # Set Prophet as the default model
+            ['ARIMA', 'AutoARIMA', 'NaiveDrift'],
+            index=1,  # Set AutoARIMA as the default model
             help="Choose the forecasting model to use."
         )
 
@@ -79,41 +78,11 @@ if ts is not None:
             'Forecast Horizon (in timesteps)',
             min_value=1,
             value=forecast_horizon,
-            help=f"Specify the number of timesteps to forecast into the future. Default is 15% of the length of the original dataset."
+            help=f"Specify the number of timesteps to forecast into the future. Default is 1.5 times the length of the test set."
         )
 
         # Additional hyperparameters for model tuning
-        if model_type == 'Prophet':
-            yearly_seasonality = st.selectbox(
-                'Yearly Seasonality',
-                [True, False],
-                help="Yearly seasonality captures patterns that repeat every year, like annual holidays or trends.",
-                index=0  # Default to True
-            )
-            weekly_seasonality = st.selectbox(
-                'Weekly Seasonality',
-                [True, False],
-                help="Weekly seasonality captures patterns that repeat every week, like weekday/weekend effects.",
-                index=1  # Default to False
-            )
-            daily_seasonality = st.selectbox(
-                'Daily Seasonality',
-                [True, False],
-                help="Daily seasonality captures patterns that repeat daily, such as daily business hours.",
-                index=1  # Default to False
-            )
-            changepoint_prior_scale = st.slider(
-                'Changepoint Prior Scale',
-                0.001, 0.5, 0.05,
-                help="Controls how much change is allowed in trend shifts. Higher values mean more potential changepoints."
-            )
-            seasonality_prior_scale = st.slider(
-                'Seasonality Prior Scale',
-                0.001, 10.0, 1.0,
-                help="Controls the strength of seasonal patterns. Higher values mean stronger seasonality."
-            )
-
-        elif model_type == 'ARIMA':
+        if model_type == 'ARIMA':
             p = st.slider('ARIMA p', 0, 10, 1,
                 help="Number of lag observations included in the model (AR term).")
             d = st.slider('ARIMA d', 0, 2, 1,
@@ -134,18 +103,12 @@ if ts is not None:
             )
 
     # Initialize and fit the model
-    if model_type == 'Prophet':
-        model = Prophet(
-            yearly_seasonality=yearly_seasonality,
-            weekly_seasonality=weekly_seasonality,
-            daily_seasonality=daily_seasonality,
-            changepoint_prior_scale=changepoint_prior_scale,
-            seasonality_prior_scale=seasonality_prior_scale
-        )
-    elif model_type == 'ARIMA':
+    if model_type == 'ARIMA':
         model = ARIMA(p=p, d=d, q=q)
     elif model_type == 'AutoARIMA':
         model = AutoARIMA(seasonal=seasonal, seasonal_periods=seasonal_periods)
+    elif model_type == 'NaiveDrift':
+        model = NaiveDrift()
 
     # Train the model
     model.fit(train_ts)
@@ -191,7 +154,7 @@ if ts is not None:
         color_discrete_map={
             'Train Data': 'blue',
             'Test Data': 'blue',
-            'Test Data Forecast': 'green',
+            'Test Data Prediction': 'green',
             'Forecast': 'red'
         }
     )
@@ -222,4 +185,3 @@ if ts is not None:
             f"**Mean Absolute Percentage Error (MAPE)** measures the accuracy as a percentage. Lower values are better, with values under 10% considered good.\n\n")
         st.write(
             f"**Root Mean Squared Error (RMSE)** measures the average error magnitude. Lower values are better, but the interpretation depends on the scale of your data.")
-
