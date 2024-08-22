@@ -18,11 +18,11 @@ def select_columns(df):
         help="This is the column containing the timestamps for the time series."
     )
 
+    # Automatically set machine_id_col to None if there are fewer than 3 columns
     machine_id_options = [col for col in columns if col != timestamp_col]
-    machine_id_options.append(None)
-    machine_id_col = st.selectbox(
+    machine_id_col = None if len(columns) < 3 else st.selectbox(
         'Select Machine ID Column (optional)',
-        machine_id_options,
+        machine_id_options + [None],
         help="This column contains machine IDs. Leave as 'None' if not applicable."
     )
 

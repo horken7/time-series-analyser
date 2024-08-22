@@ -2,6 +2,7 @@ import streamlit as st
 import plotly.express as px
 from sklearn.ensemble import IsolationForest
 from utils import load_data, select_columns, select_machine_id, filter_and_sort_data, select_feature
+from darts.datasets import AirPassengersDataset, AusBeerDataset
 
 @st.cache_data
 def detect_anomalies_moving_avg(df, feature_col, window_size=5, sigma=1.75):
@@ -14,7 +15,8 @@ def detect_anomalies_moving_avg(df, feature_col, window_size=5, sigma=1.75):
 @st.cache_data
 def detect_anomalies_isolation_forest(df, feature_col, contamination='auto'):
     series = df[feature_col].values.reshape(-1, 1)
-    model = IsolationForest(contamination=contamination, random_state=42)
+    contamination_value = 'auto' if contamination == 'auto' else float(contamination)
+    model = IsolationForest(contamination=contamination_value, random_state=42)
     model.fit(series)
     preds = model.predict(series)
     df['Anomaly'] = preds == -1
@@ -25,14 +27,36 @@ st.title('Time Series Analyzer')
 st.write("""
     **Welcome to the Anomaly Detection page!**
 
-    Start by uploading your CSV file from the sidebar. An example dataset can be found [here](https://www.kaggle.com/datasets/arnabbiswas1/microsoft-azure-predictive-maintenance?select=PdM_maint.csv).
+    Start by uploading your CSV file from the sidebar. An example dataset can be found [here](https://www.kaggle.com/datasets/arnabbiswas1/microsoft-azure-predictive-maintenance?select=PdM_telemetry.csv).
 """)
 
-uploaded_file = st.sidebar.file_uploader("Upload a CSV file", type=["csv"], help="The file must contain one column with timestamps and one column with target values, and optionally a column for machineID")
+# Checkbox for loading example dataset
+use_example_data = st.sidebar.checkbox("Load Example Dataset")
 
-if uploaded_file:
-    df = load_data(uploaded_file)
+if use_example_data:
+    dataset_name = st.sidebar.selectbox(
+        "Select Example Dataset",
+        [
+            "AirPassengers",
+            "AusBeer"
+        ]
+    )
 
+    # Load the selected example dataset
+    if dataset_name == "AirPassengers":
+        df = AirPassengersDataset().load().pd_dataframe().reset_index()
+    elif dataset_name == "AusBeer":
+        df = AusBeerDataset().load().pd_dataframe().reset_index()
+
+else:
+    uploaded_file = st.sidebar.file_uploader("Upload a CSV file", type=["csv"], help="The file must contain one column with timestamps, one column with target values, and optionally a column for machineID.")
+    if uploaded_file:
+        df = load_data(uploaded_file)
+    else:
+        st.warning("Please upload a CSV file or select an example dataset.")
+        df = None
+
+if df is not None:
     with st.sidebar.expander("Columns", expanded=True):
         # Use the utility functions to select columns and filter data
         timestamp_col, machine_id_col = select_columns(df)
@@ -80,7 +104,7 @@ if uploaded_file:
         mode='markers',
         name='Anomalies',
         marker=dict(color='red', size=8, line=dict(color='red', width=2)),
-        showlegend=True  # Ensures the legend is visible
+        showlegend=True
     )
 
     st.plotly_chart(fig)
