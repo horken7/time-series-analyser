@@ -93,7 +93,7 @@ if df is not None:
             df_anomalies = detect_anomalies_isolation_forest(df, selected_feature, contamination=contamination)
 
     # Create the main time series plot
-    fig = px.line(df_anomalies, x=timestamp_col, y=selected_feature, title=f'Time Series Data with Anomalies in {selected_feature}')
+    fig = px.line(df_anomalies, x=timestamp_col, y=selected_feature)
 
     # Add the anomalies scatter plot on top
     fig.add_scatter(

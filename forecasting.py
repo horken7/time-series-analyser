@@ -42,6 +42,8 @@ if use_example_data:
         ts = AusBeerDataset().load()
     elif dataset_name == "PdMTelemetry":
         df = load_pdmt_telemetry()
+        df, timestamp_col, selected_feature = configure_dataframe(df)
+        ts = create_timeseries(df, timestamp_col, selected_feature)
 
 else:
     uploaded_file = st.sidebar.file_uploader("Upload a CSV file", type=["csv"])
@@ -77,7 +79,7 @@ if ts is not None:
             'Forecast Horizon (in timesteps)',
             min_value=1,
             value=forecast_horizon,
-            help="Specify the number of timesteps to forecast into the future. Default is 1.5 times the length of the test set."
+            help=f"Specify the number of timesteps to forecast into the future. Default is 15% of the length of the original dataset."
         )
 
         # Additional hyperparameters for model tuning
@@ -85,30 +87,30 @@ if ts is not None:
             yearly_seasonality = st.selectbox(
                 'Yearly Seasonality',
                 [True, False],
-                help="Enable or disable yearly seasonality in Prophet.",
+                help="Yearly seasonality captures patterns that repeat every year, like annual holidays or trends.",
                 index=0  # Default to True
             )
             weekly_seasonality = st.selectbox(
                 'Weekly Seasonality',
                 [True, False],
-                help="Enable or disable weekly seasonality in Prophet.",
+                help="Weekly seasonality captures patterns that repeat every week, like weekday/weekend effects.",
                 index=1  # Default to False
             )
             daily_seasonality = st.selectbox(
                 'Daily Seasonality',
                 [True, False],
-                help="Enable or disable daily seasonality in Prophet.",
+                help="Daily seasonality captures patterns that repeat daily, such as daily business hours.",
                 index=1  # Default to False
             )
             changepoint_prior_scale = st.slider(
                 'Changepoint Prior Scale',
                 0.001, 0.5, 0.05,
-                help="Adjust the scale of the changepoint prior in Prophet. Higher values allow more changepoints."
+                help="Controls how much change is allowed in trend shifts. Higher values mean more potential changepoints."
             )
             seasonality_prior_scale = st.slider(
                 'Seasonality Prior Scale',
                 0.001, 10.0, 1.0,
-                help="Adjust the scale of the seasonality prior in Prophet. Higher values mean stronger seasonality."
+                help="Controls the strength of seasonal patterns. Higher values mean stronger seasonality."
             )
 
         elif model_type == 'ARIMA':
@@ -123,8 +125,7 @@ if ts is not None:
             seasonal = st.selectbox(
                 'Seasonal Period',
                 [None, 24, 168, 730],  # Values for hourly data
-                help="Specify the seasonal period if applicable. None for no seasonality, or specify periods like 24 (daily), 168 (weekly), 730 (yearly).",
-                index=0  # Default to None
+                help="Specify the seasonal period if applicable. None for no seasonality, or specify periods like 24 (daily), 168 (weekly), 730 (yearly)."
             )
             seasonal_periods = st.slider(
                 'Seasonal Period Length',
@@ -165,14 +166,20 @@ if ts is not None:
         'type': 'Test Data'
     })
 
+    forecast_test_df = pd.DataFrame({
+        'timestamp': test_ts.time_index,
+        'value': forecast.values()[:len(test_ts)].flatten(),
+        'type': 'Test Data Prediction'
+    })
+
     forecast_df = pd.DataFrame({
-        'timestamp': forecast.time_index,
-        'value': forecast.values().flatten(),
+        'timestamp': forecast.time_index[len(test_ts):],
+        'value': forecast.values()[len(test_ts):].flatten(),
         'type': 'Forecast'
     })
 
     # Combine all data for plotting
-    combined_df = pd.concat([train_df, test_df, forecast_df])
+    combined_df = pd.concat([train_df, test_df, forecast_test_df, forecast_df])
 
     # Plot using Plotly Express
     fig = px.line(
@@ -180,30 +187,16 @@ if ts is not None:
         x='timestamp',
         y='value',
         color='type',
-        title='Time Series Forecasting',
         labels={'value': 'Value', 'timestamp': 'Time'},
         color_discrete_map={
             'Train Data': 'blue',
             'Test Data': 'blue',
+            'Test Data Forecast': 'green',
             'Forecast': 'red'
         }
     )
 
-    # Update layout and style for better visualization
-    fig.update_layout(
-        title="Time Series Forecasting",
-        xaxis_title="Date",
-        yaxis_title="Values",
-        plot_bgcolor="white",
-        paper_bgcolor="white",
-        legend_title="Legend",
-        font=dict(size=14),
-        colorway=px.colors.qualitative.Plotly,  # Use the default colorway
-    )
-
-    # Update legend to separate test forecast
-    fig.for_each_trace(lambda trace: trace.update(showlegend=True) if trace.name == 'Forecast' else None)
-
+    # Show the plot
     st.plotly_chart(fig)
 
     # Convert DataFrames to TimeSeries for metric calculations
@@ -212,14 +205,21 @@ if ts is not None:
         'value': test_df['value']
     }), time_col='timestamp', value_cols='value')
     forecast_ts = TimeSeries.from_dataframe(pd.DataFrame({
-        'timestamp': forecast_df['timestamp'],
-        'value': forecast_df['value']
+        'timestamp': forecast_test_df['timestamp'],
+        'value': forecast_test_df['value']
     }), time_col='timestamp', value_cols='value')
 
     # Calculate performance metrics
     mape_value = mape(test_ts, forecast_ts)
     rmse_value = rmse(test_ts, forecast_ts)
 
-    st.subheader('Performance Metrics:')
-    st.write(f"Mean Absolute Percentage Error (MAPE): {mape_value:.2f}%")
-    st.write(f"Root Mean Squared Error (RMSE): {rmse_value:.2f}")
+    st.subheader('Performance Metrics')
+    st.write(f"MAPE: {mape_value:.2f}%")
+    st.write(f"RMSE: {rmse_value:.2f}")
+
+    with st.expander("Info"):
+        st.write(
+            f"**Mean Absolute Percentage Error (MAPE)** measures the accuracy as a percentage. Lower values are better, with values under 10% considered good.\n\n")
+        st.write(
+            f"**Root Mean Squared Error (RMSE)** measures the average error magnitude. Lower values are better, but the interpretation depends on the scale of your data.")
+
